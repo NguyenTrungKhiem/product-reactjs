@@ -10,67 +10,51 @@ const Products: React.FC = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  const getProducts = async (page: number) =>  {
+
+  const getProducts =  useCallback(async (page:number) =>  {
+    setLoading(true)
     const res = await axios.get(
       `https://dummyjson.com/products?limit=20&skip=${
-        (page - 1) * 20
+        (page-1) * 20
       }&select=title,price,images`
     );
     const data = res.data;
     setDataProducts((prevProducts: any) => [...prevProducts, ...data.products]);
-    console.log(page);
     setLoading(false);
     if (data.skip + data.limit >= data.total) {
       setHasMore(false);
-    } else {
-      setPage(page+1);
-    }
-  };
+    } 
+    setPage(page);
+  },[]);
 
   useEffect(() => {
-    setLoading(true);
-    getProducts(page);
-    
-  }, []);
+    getProducts(1);
+  }, [getProducts]);
 
-  const handleScroll = () => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    if (
-      window.innerHeight + document.documentElement.scrollTop ===
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
         document.documentElement.offsetHeight &&
       !loading &&
       hasMore
-    ) {
-      // getProducts(page+1);
-      // setPage(page+1)
-      setLoading(true);
-      setPage((prevPage) => prevPage + 1);
-      console.log(page);
-
+      ) {
+        getProducts(page+1)
+      }
     }
-  };
-  useEffect(() => {
-    if (loading) {
-      // Gọi hàm getProducts(page + 1) ở đây
-      getProducts(page + 1).then(() => {
-        setLoading(false);
-      });
-    }
-  }, []);
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [hasMore, loading, getProducts, page]);
 
   return (
     <>
+   
         <div className="w-full my-10">
           <ProductDetail products={dataProducts} />
         </div>
+       
         {loading && <p>Loading...</p>}
     </>
   );
 };
-export default React.memo(Products);
+export default Products;
